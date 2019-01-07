@@ -4,9 +4,6 @@ import com.example.practice.domain.db.Person
 import com.example.practice.services.PracticeService
 import com.twitter.finagle.http.Request
 import com.twitter.finatra.http.Controller
-import reactivemongo.bson.{BSONDocumentReader, Macros}
-
-import scala.concurrent.ExecutionContext
 
 class PracticeController extends Controller {
 
@@ -14,7 +11,6 @@ class PracticeController extends Controller {
 
   get("/person/query") { request: Request =>
     info("hi")
-    //"Hello " + request.params.getOrElse("name", "unnamed")
     server.queryPerson(request.params.getOrElse("name", " "))
   }
 
@@ -22,14 +18,20 @@ class PracticeController extends Controller {
     server.insertPerson(person)
   }
 
+  post("/person/bulkInsert") { list : List[Person] =>
+    server.bulkInsert(list)
+  }
+
   post("/person/update") { person: Person =>
     server.updatePerson(person)
   }
 
-  post("/person/delete") { person: Person =>
-    server.removedPerson(person)
+  post("/person/deleteOne") { person: Person =>
+    server.deletePerson(person)
   }
 
-
+  post("/person/findAndRemovePerson") { person: Person =>
+    server.findAndRemovePerson(person)
+  }
 
 }
