@@ -4,12 +4,12 @@ import javax.inject.Singleton
 import reactivemongo.api.collections.bson.BSONCollection
 import reactivemongo.api.{DefaultDB, MongoConnection, MongoDriver}
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future => ScalaFuture}
 
 object MongoDBMudule {
 
   @Singleton
-  def getCollection(): Future[BSONCollection] ={
+  def getCollection(): ScalaFuture[BSONCollection] ={
     val mongoUri = "mongodb://localhost:27017/test?authMode=scram-sha1"
     import ExecutionContext.Implicits.global
 
@@ -17,9 +17,9 @@ object MongoDBMudule {
     val parsedUri = MongoConnection.parseURI(mongoUri)
     val connection = parsedUri.map(driver.connection(_))
 
-    val futureConnection = Future.fromTry(connection)
+    val futureConnection = ScalaFuture.fromTry(connection)
 
-    def db1: Future[DefaultDB] = futureConnection.flatMap(_.database("mydb"))
+    def db1: ScalaFuture[DefaultDB] = futureConnection.flatMap(_.database("mydb"))
     db1.map(_.collection("person"))
   }
 }

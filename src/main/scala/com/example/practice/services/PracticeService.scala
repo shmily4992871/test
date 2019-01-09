@@ -8,13 +8,12 @@ import reactivemongo.api.commands.{MultiBulkWriteResult, WriteResult}
 import reactivemongo.bson.{BSONDocument, BSONDocumentReader, BSONDocumentWriter, Macros}
 
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success}
 
 class PracticeService {
 
   def collection: Future[BSONCollection] = MongoDBMudule.getCollection()
-  import scala.concurrent.ExecutionContext.Implicits.global
-
 
   implicit def personWriter: BSONDocumentWriter[Person] = Macros.writer[Person]
   //OK
@@ -38,8 +37,7 @@ class PracticeService {
   // Bulk: .insert[T].many(Seq(t1, t2, ..., tN))
   def bulkInsert(personList : List[Person]): Future[Unit] = {
     val writeRes: Future[MultiBulkWriteResult] =
-      collection.flatMap(_.insert[Person](ordered = false).
-        many(personList))
+      collection.flatMap(_.insert[Person](ordered = false).many(personList))
 
     writeRes.onComplete { // Dummy callbacks
       case Failure(e) => e.printStackTrace()
@@ -69,6 +67,24 @@ class PracticeService {
       case Success(writeResult) => println("successfully removed document: " + writeResult)
     }
   }
+
+  /*def bulkDelete(personColl: BSONCollection) = {
+    collection.flatMap(_.delete[BSONDocument](ordered = false))
+
+    val deleteBuilder = personColl.delete[BSONDocument](ordered = false)
+
+    val deletes = Future.sequence(Seq(
+      deleteBuilder.element(
+        q = BSONDocument("firstName" -> "Stephane"),
+        limit = Some(1), // former option firstMatch
+        collation = None),
+      deleteBuilder.element(
+        q = BSONDocument("lastName" -> "Doh"),
+        limit = None, // delete all the matching document
+        collation = None)))
+
+    deletes.flatMap { ops => deleteBuilder.many(ops) }
+  }*/
 
   //OK
   def findAndRemovePerson(person: Person) : Future[Option[Person]] =
