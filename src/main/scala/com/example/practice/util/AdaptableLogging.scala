@@ -18,5 +18,6 @@ trait AdaptableLogging extends Logging {
       case (Some("error"), Some(th)) => error(msg, th)
       case (Some("warn"), Some(th))  => warn(msg, th)
       case (Some("trace"), Some(th)) => trace(msg, th)
+      case _                         => info(msg)
     }
 }
