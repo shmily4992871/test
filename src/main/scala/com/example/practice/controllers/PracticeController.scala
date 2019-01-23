@@ -2,23 +2,25 @@ package com.example.practice.controllers
 
 import com.example.practice.domain.ID
 import com.example.practice.domain.PersonModel._
-import com.example.practice.domain.db.DBPerson
-import com.example.practice.models.http.{DeleteOneRequest, IdResponse, PersonRequest}
-import com.example.practice.services.person.{AddPersonService, DeletePersonService}
+import com.example.practice.models.http._
+import com.example.practice.services.person._
 import com.twitter.finagle.http.Request
 import com.twitter.finatra.http.Controller
 import com.twitter.util.Time
 import javax.inject.Inject
-import mouse.boolean._
 import perfolation._
 
 // TODO -Need Swagger doc
 // W1606004670
-class PracticeController @Inject()(addPersonSvc: AddPersonService, deletePersonSvc: DeletePersonService)
+class PracticeController @Inject()(addPersonSvc: AddPersonService,
+                                   addBatchPersonSvc: AddBatchPersonService,
+                                   deletePersonSvc: DeletePersonService,
+                                   queryPersonSvc: QueryPersonService,
+                                   updateRersonSvc: UpdatePersonService)
     extends Controller {
 
-  get("/person/query") { request: Request =>
-    response.notImplemented
+  get("/person/query:pid") { req: QueryOneRequest =>
+    queryPersonSvc(ID.fromString(req.pid))
   }
 
   post("/person/insert") { person: PersonRequest =>
@@ -27,7 +29,11 @@ class PracticeController @Inject()(addPersonSvc: AddPersonService, deletePersonS
         id = ID(),
         name = Name(person.name),
         age = Age(person.age),
-        gender = (person.gender == "male").fold(Male, Female),
+        gender = person.gender.toLowerCase() match {
+          case "male"   => Male
+          case "female" => Female
+          case _        => Unknow
+        },
         address = Address(person.address),
         createTime = CreateTime(Time.now.inMilliseconds)
       )
@@ -40,12 +46,48 @@ class PracticeController @Inject()(addPersonSvc: AddPersonService, deletePersonS
     }
   }
 
-  post("/person/bulkInsert") { list: List[DBPerson] =>
-    response.notImplemented
+  post("/person/bulkInsert") { list: List[PersonRequest] =>
+    val createTime = CreateTime(Time.now.inMilliseconds)
+
+    addBatchPersonSvc(
+      list.map(
+        person =>
+          Person(
+            id = ID(),
+            name = Name(person.name),
+            age = Age(person.age),
+            gender = person.gender.toLowerCase() match {
+              case "male"   => Male
+              case "female" => Female
+              case _        => Unknow
+            },
+            address = Address(person.address),
+            createTime = createTime
+        )
+      )
+    ).map(count => response.created.json(InsertNumRequest(count.toString()))).run.handle {
+      case e: Throwable =>
+        // DEBUG
+        error(p"[/person/bulkInsert] - ${e.getMessage}")
+
+        response.internalServerError
+    }
   }
 
-  post("/person/update") { req: Request =>
-    response.notImplemented
+  post("/person/update") { person: UpdatePersonRequest =>
+    updateRersonSvc(
+      UpdatePerson(
+        id = ID.fromString(person.id),
+        name = Name(person.name),
+        age = Age(person.age),
+        gender = person.gender.toLowerCase() match {
+          case "male"   => Male
+          case "female" => Female
+          case _        => Unknow
+        },
+        address = Address(person.address)
+      )
+    )
   }
 
   delete("/person/deleteOne/:pid") { req: DeleteOneRequest =>

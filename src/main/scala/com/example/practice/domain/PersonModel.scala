@@ -10,6 +10,9 @@ object PersonModel {
   case object Female extends Gender {
     def asString: String = "female"
   }
+  case object Unknow extends Gender {
+    def asString: String = "unknow"
+  }
 
   final case class Name(d: String)     extends AnyVal
   final case class Age(d: Int)         extends AnyVal
@@ -17,4 +20,5 @@ object PersonModel {
   final case class CreateTime(d: Long) extends AnyVal
 
   final case class Person(id: ID, name: Name, age: Age, gender: Gender, address: Address, createTime: CreateTime)
+  final case class UpdatePerson(id: ID, name: Name, age: Age, gender: Gender, address: Address)
 }

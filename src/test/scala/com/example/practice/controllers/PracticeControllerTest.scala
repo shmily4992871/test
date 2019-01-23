@@ -2,6 +2,7 @@ package com.example.practice.controllers
 
 import com.example.practice.Server
 import com.example.practice.docker.DockerMongodbService
+import com.example.practice.domain.PersonModel.Person
 import com.twitter.finatra.http.EmbeddedHttpServer
 import com.twitter.inject.server.FeatureTest
 import com.whisk.docker.scalatest.DockerTestKit
@@ -19,7 +20,7 @@ class PracticeControllerTest extends FeatureTest with DockerTestKit with DockerM
   override def beforeAll(): Unit = isContainerReady(mongodbContainer).futureValue shouldBe true
 
   /*test("Server#query ok") {
-    server.httpGet(path = "/person/query?name=tom")
+    server.httpGet(path = "/person/query?personId=135")
   }*/
 
   test("Should be able to successfully insert and delete an user") {
@@ -41,13 +42,18 @@ class PracticeControllerTest extends FeatureTest with DockerTestKit with DockerM
       .contentString
       .|>(c => objectMapper.parse[PersonId](c).id)
 
+    server.httpGet(path = p"/person/query/$pId")
+
     server.httpDelete(path = p"/person/deleteOne/$pId", andExpect = Ok)
   }
 
-  /*test("Server#save person ok") {
-    server.httpPost(
-      path = "/person/bulkInsert",
-      postBody = """
+  test("Should be able to successfully insertBatch users") {
+    val objectMapper = injector.instance[FinatraObjectMapper]
+
+    server
+      .httpPost(
+        path = "/person/bulkInsert",
+        postBody = """
         [
           {
             "name": "wangwu",
@@ -65,23 +71,25 @@ class PracticeControllerTest extends FeatureTest with DockerTestKit with DockerM
            }
         ]
         """
-    )
-  }*/
+      )
+      .contentString
+      .|>(c => objectMapper.parse[PersonCount](c).count)
+  }
 
-  /*test("Server#update person ok") {
+  test("update person ok") {
     server.httpPost(
       path = "/person/update",
       postBody = """
         {
-          "name": "famous",
-          "age" : 60,
-          "gender" : "female",
-          "address" : "shanghai",
-          "create_time" : 19980808
+          "id"      : "bh3sao7h0srh7d944hag",
+          "name"    : "famous",
+          "age"     : 60,
+          "gender"  : "female",
+          "address" : "shanghai"
         }
         """
     )
-  }*/
+  }
 
 //  test("Server#delete person ok") {
 //    server.httpPost(
@@ -113,4 +121,5 @@ class PracticeControllerTest extends FeatureTest with DockerTestKit with DockerM
   }*/
 }
 
-final case class PersonId(id: String) extends AnyVal
+final case class PersonId(id: String)    extends AnyVal
+final case class PersonCount(count: Int) extends AnyVal

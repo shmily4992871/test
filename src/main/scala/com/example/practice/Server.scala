@@ -2,7 +2,7 @@ package com.example.practice
 
 import com.example.practice.controllers.{AdminController, MainController, PracticeController}
 import com.example.practice.filters.CommonFilters
-import com.example.practice.modules.{MongoDBMudule, ServiceSwaggerModule}
+import com.example.practice.modules.{MongoDBModule, ServiceSwaggerModule}
 import com.example.practice.util.AppConfigLib._
 import com.jakehschwartz.finatra.swagger.DocsController
 import com.twitter.finagle.http.{Request, Response}
@@ -21,7 +21,7 @@ class Server extends HttpServer {
 
   implicit lazy val scheduler: SchedulerService = Scheduler.io("test-service")
 
-  override protected def modules = Seq(ServiceSwaggerModule, MongoDBMudule)
+  override protected def modules = Seq(ServiceSwaggerModule, MongoDBModule)
 
   override def defaultHttpPort = getConfig[String]("FINATRA_HTTP_PORT").fold(":9999")(x => p":$x")
   override val name            = "com.example.practice-Practice"
