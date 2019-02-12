@@ -59,14 +59,14 @@ class PersonMongoRepo @Inject()(personColl: Future[Maybe[BSONCollection]]) exten
   }
 
   private[this] def personToDBPerson(p: Person): DBPerson =
-    DBPerson(p.id.id.toString(), p.name.d, p.age.d, p.gender.asString, p.address.d, p.createTime.d)
+    DBPerson(p.id.id.toString(), p.name.d, p.age.d, p.gender, p.address.d, p.createTime.d)
 
   private[this] def dbPersonToPerson(p: DBPerson): Person =
     Person(
       ID.fromString(p.id),
       Name(p.name),
       Age(p.age),
-      (p.gender == "male").fold(Male, Female),
+      p.gender,
       Address(p.address),
       CreateTime(p.create_time)
     )

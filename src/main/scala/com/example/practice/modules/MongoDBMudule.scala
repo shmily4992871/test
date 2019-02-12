@@ -23,7 +23,7 @@ object MongoDBMudule extends TwitterModule {
   val mongoUri                   = getConfig[String]("MONGODB_URI")
   private[this] val databaseName = p"test-svc-db-${Time.now.inMilliseconds}"
 
-  private[this] val dbFuture: Future[Option[(MongoConnection, String)]] =
+  private[this] lazy val dbFuture: Future[Option[(MongoConnection, String)]] =
     Future(
       mongoUri
         .flatMap { uri =>
@@ -44,8 +44,8 @@ object MongoDBMudule extends TwitterModule {
 
   @Singleton
   @Provides
-  def providesPersonCollection(dbF: Future[Option[(MongoConnection, String)]]): Future[Maybe[BSONCollection]] =
-    dbF.flatMap {
+  def providesPersonCollection: Future[Maybe[BSONCollection]] =
+    dbFuture.flatMap {
       _.cata(
         x => {
           val (conn, dbName) = x
@@ -76,7 +76,7 @@ object MongoDBMudule extends TwitterModule {
       )
     }
 
-  @Singleton
-  @Provides
-  def providesMongoDB: Future[Option[(MongoConnection, String)]] = dbFuture
+//  @Singleton
+//  @Provides
+//  def providesMongoDB: Future[Option[(MongoConnection, String)]] = dbFuture
 }

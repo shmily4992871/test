@@ -14,7 +14,7 @@ object PersonRepo {
   final case class InsertSuccess(id: ID)      extends InsertResult
   final case class InsertFailure(msg: String) extends InsertResult
 
-  sealed trait DeleteResult             extends Product with Serializable
-  case class DeleteSuccess(p: Person)   extends DeleteResult
-  case class DeleteFailure(msg: String) extends DeleteResult
+  sealed trait DeleteResult                   extends Product with Serializable
+  final case class DeleteSuccess(p: Person)   extends DeleteResult
+  final case class DeleteFailure(msg: String) extends DeleteResult
 }

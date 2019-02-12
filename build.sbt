@@ -36,19 +36,22 @@ coverageHighlighting := true
 
 coverageMinimum := 70
 coverageFailOnMinimum := true
-coverageExcludedPackages := ".*sse*.;.*util*.;.*client*."
+coverageExcludedPackages := ".*sse*.;.*util*.;.*client*.;.*ACLoggingFilter*."
 
 scapegoatVersion in ThisBuild := "1.3.8"
 
 scalafmtConfig := Some(file(".scalafmt.conf"))
 scalafmtOnCompile := true
 
+wartremoverWarnings ++= Warts.all
+
 autoCompilerPlugins := true
 addCompilerPlugin("com.criteo.socco"      %% "socco-plugin"       % "0.1.9")
 addCompilerPlugin("com.olegpy"            %% "better-monadic-for" % "0.3.0-M4")
 addCompilerPlugin("com.github.cb372"      %% "scala-typed-holes"  % "0.0.3")
-addCompilerPlugin("com.softwaremill.neme" %% "neme-plugin"        % "0.0.1")
-addCompilerPlugin(("io.tryp" % "splain" % "0.3.5").cross(CrossVersion.patch))
+addCompilerPlugin("com.softwaremill.neme" %% "neme-plugin"        % "0.0.2")
+addCompilerPlugin(("io.tryp"       % "splain"   % "0.4.0").cross(CrossVersion.patch))
+addCompilerPlugin(("org.scalameta" % "paradise" % "3.0.0-M11").cross(CrossVersion.full))
 
 lazy val versions = new {
   val finatra        = "19.1.0"
@@ -61,8 +64,8 @@ lazy val versions = new {
   val scalaUri       = "1.3.1"
   val hamsters       = "2.6.0"
   val fluentdScala   = "0.2.5"
-  val swaggerFinatra = "18.11.0"
-  val wireMock       = "2.19.0"
+  val swaggerFinatra = "18.12.0"
+  val wireMock       = "2.20.0"
   val catbird        = "19.1.0"
   val scalaErrors    = "1.2"
   val perfolation    = "1.0.4"
@@ -70,9 +73,14 @@ lazy val versions = new {
   val reactivemongo  = "0.13.0"
   val monix          = "3.0.0-fbcb270"
   val rideId         = "1.0.1"
+  val enumeratum     = "1.5.13"
+  val catsTagless    = "0.2.0"
 }
 
 libraryDependencies ++= Seq(
+  "org.typelevel"                %% "cats-tagless-macros"             % versions.catsTagless,
+  "com.beachape"                 %% "enumeratum"                      % versions.enumeratum,
+  "com.beachape"                 %% "enumeratum-reactivemongo-bson"   % versions.enumeratum,
   "com.github.kolotaev"          %% "ride"                            % versions.rideId,
   "io.monix"                     %% "monix-execution"                 % versions.monix,
   "com.jakehschwartz"            %% "finatra-swagger"                 % versions.swaggerFinatra,
@@ -132,39 +140,39 @@ scalacOptions ++= Seq(
   "-explaintypes",
   "-feature",
   "-Xcheckinit",
-  "-Xlint:adapted-args", // Warn if an argument list is modified to match the receiver.
+  "-Xlint:adapted-args",              // Warn if an argument list is modified to match the receiver.
   "-Xlint:by-name-right-associative", // By-name parameter of right associative operator.
-  "-Xlint:constant", // Evaluation of a constant arithmetic expression results in an error.
-  "-Xlint:delayedinit-select", // Selecting member of DelayedInit.
-  "-Xlint:doc-detached", // A Scaladoc comment appears to be detached from its element.
-  "-Xlint:inaccessible", // Warn about inaccessible types in method signatures.
-  "-Xlint:infer-any", // Warn when a type argument is inferred to be `Any`.
-  "-Xlint:missing-interpolator", // A string literal appears to be missing an interpolator id.
-  "-Xlint:nullary-override", // Warn when non-nullary `def f()' overrides nullary `def f'.
-  "-Xlint:nullary-unit", // Warn when nullary methods return Unit.
-  "-Xlint:option-implicit", // Option.apply used implicit view.
-  "-Xlint:package-object-classes", // Class or object defined in package object.
-  "-Xlint:poly-implicit-overload", // Parameterized overloaded implicit methods are not visible as view bounds.
-  "-Xlint:private-shadow", // A private field (or class parameter) shadows a superclass field.
-  "-Xlint:stars-align", // Pattern sequence wildcard must align with sequence component.
-  "-Xlint:type-parameter-shadow", // A local type parameter shadows a type already in scope.
-  "-Xlint:unsound-match", // Pattern match may not be typesafe.
-  "-Yno-adapted-args", // Do not adapt an argument list (either by inserting () or creating a tuple) to match the receiver.
-  "-Ypartial-unification", // Enable partial unification in type constructor inference
-  "-Ywarn-dead-code", // Warn when dead code is identified.
-  "-Ywarn-extra-implicit", // Warn when more than one implicit parameter section is defined.
-  "-Ywarn-inaccessible", // Warn about inaccessible types in method signatures.
-  "-Ywarn-infer-any", // Warn when a type argument is inferred to be `Any`.
-  "-Ywarn-nullary-override", // Warn when non-nullary `def f()' overrides nullary `def f'.
-  "-Ywarn-nullary-unit", // Warn when nullary methods return Unit.
-  "-Ywarn-numeric-widen", // Warn when numerics are widened.
-  "-Ywarn-unused:implicits", // Warn if an implicit parameter is unused.
-  "-Ywarn-unused:imports", // Warn if an import selector is not referenced.
-  "-Ywarn-unused:locals", // Warn if a local definition is unused.
-  "-Ywarn-unused:params", // Warn if a value parameter is unused.
-  "-Ywarn-unused:patvars", // Warn if a variable bound in a pattern is unused.
-  "-Ywarn-unused:privates", // Warn if a private member is unused.
-  "-Ywarn-value-discard", // Warn when non-Unit expression results are unused.
+  "-Xlint:constant",                  // Evaluation of a constant arithmetic expression results in an error.
+  "-Xlint:delayedinit-select",        // Selecting member of DelayedInit.
+  "-Xlint:doc-detached",              // A Scaladoc comment appears to be detached from its element.
+  "-Xlint:inaccessible",              // Warn about inaccessible types in method signatures.
+  "-Xlint:infer-any",                 // Warn when a type argument is inferred to be `Any`.
+  "-Xlint:missing-interpolator",      // A string literal appears to be missing an interpolator id.
+  "-Xlint:nullary-override",          // Warn when non-nullary `def f()' overrides nullary `def f'.
+  "-Xlint:nullary-unit",              // Warn when nullary methods return Unit.
+  "-Xlint:option-implicit",           // Option.apply used implicit view.
+  "-Xlint:package-object-classes",    // Class or object defined in package object.
+  "-Xlint:poly-implicit-overload",    // Parameterized overloaded implicit methods are not visible as view bounds.
+  "-Xlint:private-shadow",            // A private field (or class parameter) shadows a superclass field.
+  "-Xlint:stars-align",               // Pattern sequence wildcard must align with sequence component.
+  "-Xlint:type-parameter-shadow",     // A local type parameter shadows a type already in scope.
+  "-Xlint:unsound-match",             // Pattern match may not be typesafe.
+  "-Yno-adapted-args",                // Do not adapt an argument list (either by inserting () or creating a tuple) to match the receiver.
+  "-Ypartial-unification",            // Enable partial unification in type constructor inference
+  "-Ywarn-dead-code",                 // Warn when dead code is identified.
+  "-Ywarn-extra-implicit",            // Warn when more than one implicit parameter section is defined.
+  "-Ywarn-inaccessible",              // Warn about inaccessible types in method signatures.
+  "-Ywarn-infer-any",                 // Warn when a type argument is inferred to be `Any`.
+  "-Ywarn-nullary-override",          // Warn when non-nullary `def f()' overrides nullary `def f'.
+  "-Ywarn-nullary-unit",              // Warn when nullary methods return Unit.
+  "-Ywarn-numeric-widen",             // Warn when numerics are widened.
+  "-Ywarn-unused:implicits",          // Warn if an implicit parameter is unused.
+  "-Ywarn-unused:imports",            // Warn if an import selector is not referenced.
+  "-Ywarn-unused:locals",             // Warn if a local definition is unused.
+  "-Ywarn-unused:params",             // Warn if a value parameter is unused.
+  "-Ywarn-unused:patvars",            // Warn if a variable bound in a pattern is unused.
+  "-Ywarn-unused:privates",           // Warn if a private member is unused.
+  "-Ywarn-value-discard",             // Warn when non-Unit expression results are unused.
   "-P:clippy:colors=true",
   "-Ycache-plugin-class-loader:last-modified",
   "-Ycache-macro-class-loader:last-modified",
