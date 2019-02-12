@@ -1,25 +1,82 @@
 package com.example.practice.modules
 
+import cats.syntax.option._
+import com.example.practice.ServerMain._
+import com.example.practice.util.AppConfigLib._
+import com.example.practice.util.PipeOperator._
+import com.github.mehmetakiftutuncu.errors.{CommonError, Errors, Maybe}
+import com.google.inject.Provides
+import com.twitter.inject.TwitterModule
+import com.twitter.util.{Future, Time}
+import io.github.hamsters.Validation._
+import io.github.hamsters.twitter.Implicits._
 import javax.inject.Singleton
+import mouse.`try`._
+import mouse.option._
+import perfolation._
 import reactivemongo.api.collections.bson.BSONCollection
-import reactivemongo.api.{DefaultDB, MongoConnection, MongoDriver}
+import reactivemongo.api.{MongoConnection, MongoDriver}
 
-import scala.concurrent.{ExecutionContext, Future => ScalaFuture}
+// TODO
+// READ THE MANUAL! http://twitter.github.io/finatra/user-guide/getting-started/modules.html
+object MongoDBMudule extends TwitterModule {
+  val mongoUri                   = getConfig[String]("MONGODB_URI")
+  private[this] val databaseName = p"test-svc-db-${Time.now.inMilliseconds}"
 
-object MongoDBMudule {
+  private[this] lazy val dbFuture: Future[Option[(MongoConnection, String)]] =
+    Future(
+      mongoUri
+        .flatMap { uri =>
+          MongoConnection
+            .parseURI(uri)
+            .cata(
+              u => ((new MongoDriver).connection(u) -> u.db.getOrElse(databaseName)).some,
+              t => {
+                // DEBUG
+                debug(p"MongoDB connection failed: ${t.getMessage} - [${t.getStackTrace.mkString("\n")}]")
+
+                None
+              }
+            )
+            .$$(z => info(p"Initiating MongoDBModule => URI:[$uri], [$z]"))
+        }
+    )
 
   @Singleton
-  def getCollection(): ScalaFuture[BSONCollection] ={
-    val mongoUri = "mongodb://localhost:27017/test?authMode=scram-sha1"
-    import ExecutionContext.Implicits.global
+  @Provides
+  def providesPersonCollection: Future[Maybe[BSONCollection]] =
+    dbFuture.flatMap {
+      _.cata(
+        x => {
+          val (conn, dbName) = x
 
-    val driver = MongoDriver()
-    val parsedUri = MongoConnection.parseURI(mongoUri)
-    val connection = parsedUri.map(driver.connection(_))
+          conn
+            .database(dbName)
+            .map(d => OK(d.collection("person")))
+            .handle {
+              case e: Throwable =>
+                KO(
+                  Errors(
+                    CommonError.database
+                      .reason("MONGODB-EXCEPTION")
+                      .data(p"Provided URI:[$mongoUri]\n${e.getMessage} - ${e.getStackTrace.mkString("\n")}")
+                  )
+                )
+            }
+        },
+        Future.value(
+          KO(
+            Errors(
+              CommonError.database.reason(
+                "Failed to acquire a collection: please check if system environment variable `MONGO_DB_URI` was set"
+              )
+            )
+          )
+        )
+      )
+    }
 
-    val futureConnection = ScalaFuture.fromTry(connection)
-
-    def db1: ScalaFuture[DefaultDB] = futureConnection.flatMap(_.database("mydb"))
-    db1.map(_.collection("person"))
-  }
+//  @Singleton
+//  @Provides
+//  def providesMongoDB: Future[Option[(MongoConnection, String)]] = dbFuture
 }

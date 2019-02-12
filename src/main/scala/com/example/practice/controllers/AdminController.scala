@@ -2,11 +2,14 @@ package com.example.practice.controllers
 
 import javax.inject.Inject
 
+import cats.instances.string._
+import cats.syntax.eq._
 import com.example.practice.ServerMain._
 import com.twitter.finagle.http.Request
 import com.twitter.inject.annotations.Flag
 import com.jakehschwartz.finatra.swagger.SwaggerController
 import io.swagger.models.Swagger
+import mouse.boolean._
 
 class AdminController @Inject()(s: Swagger, @Flag("service.version") version: String) extends SwaggerController {
   implicit protected val swagger = s
@@ -17,7 +20,7 @@ class AdminController @Inject()(s: Swagger, @Flag("service.version") version: St
       .responseWith(200, "The service is healthy")
       .responseWith(500, "The service is not healthy")
   } { request: Request =>
-    if (health() == "good") response.ok else response.serviceUnavailable
+    (health() === "good").fold(response.ok, response.serviceUnavailable)
   }
 
   getWithDoc("/version") { o =>
