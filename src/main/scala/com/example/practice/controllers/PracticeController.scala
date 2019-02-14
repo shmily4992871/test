@@ -1,13 +1,15 @@
 package com.example.practice.controllers
 
-import com.example.practice.domain.ID
+import com.example.practice.domain.Gender.{Female, Male}
 import com.example.practice.domain.PersonModel._
+import com.example.practice.domain.{Gender, ID}
 import com.example.practice.models.http._
 import com.example.practice.services.person._
 import com.twitter.finagle.http.Request
 import com.twitter.finatra.http.Controller
 import com.twitter.util.Time
 import javax.inject.Inject
+import mouse.option._
 import perfolation._
 
 // TODO -Need Swagger doc
@@ -19,53 +21,58 @@ class PracticeController @Inject()(addPersonSvc: AddPersonService,
                                    updateRersonSvc: UpdatePersonService)
     extends Controller {
 
-  get("/person/query:pid") { req: QueryOneRequest =>
+  get("/person/query/:pid") { req: QueryOneRequest =>
     queryPersonSvc(ID.fromString(req.pid))
   }
 
   post("/person/insert") { person: PersonRequest =>
-    addPersonSvc(
-      Person(
-        id = ID(),
-        name = Name(person.name),
-        age = Age(person.age),
-        gender = person.gender.toLowerCase() match {
-          case "male"   => Male
-          case "female" => Female
-          case _        => Unknow
-        },
-        address = Address(person.address),
-        createTime = CreateTime(Time.now.inMilliseconds)
-      )
-    ).map(d => response.created.json(IdResponse(d.id.toString()))).run.handle {
-      case e: Throwable =>
-        // DEBUG
-        error(p"[/person/insert] - ${e.getMessage}")
+    Gender
+      .withNameLowercaseOnlyOption(person.gender)
+      .cata(
+        g =>
+          addPersonSvc(
+            Person(
+              id = ID(),
+              name = Name(person.name),
+              age = Age(person.age),
+              gender = g,
+              address = Address(person.address),
+              createTime = CreateTime(Time.now.inMilliseconds)
+            )
+          ).map(d => response.created.json(IdResponse(d.id.toString()))).run.handle {
+            case e: Throwable =>
+              // DEBUG
+              error(p"[/person/insert] - ${e.getMessage}")
 
-        response.internalServerError
-    }
+              response.internalServerError
+        },
+        response.badRequest
+      )
   }
 
   post("/person/bulkInsert") { list: List[PersonRequest] =>
     val createTime = CreateTime(Time.now.inMilliseconds)
 
-    addBatchPersonSvc(
-      list.map(
-        person =>
-          Person(
-            id = ID(),
-            name = Name(person.name),
-            age = Age(person.age),
-            gender = person.gender.toLowerCase() match {
-              case "male"   => Male
-              case "female" => Female
-              case _        => Unknow
-            },
-            address = Address(person.address),
-            createTime = createTime
+    val personList = List[Person]()
+    list.map(
+      p =>
+        Gender
+          .withNameLowercaseOnlyOption(p.gender)
+          .cata(
+            g =>
+              Person(
+                id = ID(),
+                name = Name(p.name),
+                age = Age(p.age),
+                gender = g,
+                address = Address(p.address),
+                createTime = createTime
+              ) :: personList,
+            response.badRequest
         )
-      )
-    ).map(count => response.created.json(InsertNumRequest(count.toString()))).run.handle {
+    )
+
+    addBatchPersonSvc(personList).map(count => response.created.json(InsertNumRequest(count.toString()))).run.handle {
       case e: Throwable =>
         // DEBUG
         error(p"[/person/bulkInsert] - ${e.getMessage}")
@@ -75,19 +82,22 @@ class PracticeController @Inject()(addPersonSvc: AddPersonService,
   }
 
   post("/person/update") { person: UpdatePersonRequest =>
-    updateRersonSvc(
-      UpdatePerson(
-        id = ID.fromString(person.id),
-        name = Name(person.name),
-        age = Age(person.age),
-        gender = person.gender.toLowerCase() match {
-          case "male"   => Male
-          case "female" => Female
-          case _        => Unknow
-        },
-        address = Address(person.address)
+    Gender
+      .withNameLowercaseOnlyOption(person.gender)
+      .cata(
+        g =>
+          updateRersonSvc(
+            UpdatePerson(
+              id = ID.fromString(person.id),
+              name = Name(person.name),
+              age = Age(person.age),
+              gender = g,
+              address = Address(person.address)
+            )
+        ),
+        response.badRequest
       )
-    )
+
   }
 
   delete("/person/deleteOne/:pid") { req: DeleteOneRequest =>

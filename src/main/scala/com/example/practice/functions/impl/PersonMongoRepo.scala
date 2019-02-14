@@ -127,7 +127,7 @@ class PersonMongoRepo @Inject()(@PersonCollection personColl: Future[Maybe[BSONC
   }
 
   private[this] def personToDBPerson(p: Person): DBPerson =
-    DBPerson(p.id.id.toString(), p.name.d, p.age.d, p.gender.asString, p.address.d, p.createTime.d)
+    DBPerson(p.id.id.toString(), p.name.d, p.age.d, p.gender, p.address.d, p.createTime.d)
 
   private[this] def personListToDBPersonList(persons: List[Person]): List[DBPerson] =
     persons.map(p => personToDBPerson(p))
@@ -137,7 +137,7 @@ class PersonMongoRepo @Inject()(@PersonCollection personColl: Future[Maybe[BSONC
       ID.fromString(p.id),
       Name(p.name),
       Age(p.age),
-      (p.gender == "male").fold(Male, Female),
+      p.gender,
       Address(p.address),
       CreateTime(p.create_time)
     )

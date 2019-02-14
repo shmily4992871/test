@@ -2,7 +2,7 @@ package com.example.practice.modules
 
 import cats.syntax.option._
 import com.example.practice.ServerMain._
-import com.example.practice.annotations.{ZoonCollection, PersonCollection}
+import com.example.practice.annotations.PersonCollection
 import com.example.practice.util.AppConfigLib._
 import com.example.practice.util.PipeOperator._
 import com.github.mehmetakiftutuncu.errors.{CommonError, Errors, Maybe}
@@ -24,7 +24,7 @@ object MongoDBModule extends TwitterModule {
   val mongoUri                   = getConfig[String]("MONGODB_URI")
   private[this] val databaseName = p"test-svc-db-${Time.now.inMilliseconds}"
 
-  private[this] val dbFuture: Future[Option[(MongoConnection, String)]] =
+  private[this] lazy val dbFuture: Future[Option[(MongoConnection, String)]] =
     Future(
       mongoUri
         .flatMap { uri =>
@@ -46,8 +46,8 @@ object MongoDBModule extends TwitterModule {
   @Singleton
   @Provides
   @PersonCollection
-  def providesPersonCollection(dbF: Future[Option[(MongoConnection, String)]]): Future[Maybe[BSONCollection]] =
-    dbF.flatMap {
+  def providesPersonCollection: Future[Maybe[BSONCollection]] =
+    dbFuture.flatMap {
       _.cata(
         x => {
           val (conn, dbName) = x
@@ -78,42 +78,7 @@ object MongoDBModule extends TwitterModule {
       )
     }
 
-  @Singleton
-  @Provides
-  @ZoonCollection
-  def providesManCollection(dbF: Future[Option[(MongoConnection, String)]]): Future[Maybe[BSONCollection]] =
-    dbF.flatMap {
-      _.cata(
-        x => {
-          val (conn, dbName) = x
-
-          conn
-            .database(dbName)
-            .map(d => OK(d.collection("man")))
-            .handle {
-              case e: Throwable =>
-                KO(
-                  Errors(
-                    CommonError.database
-                      .reason("MONGODB-EXCEPTION")
-                      .data(p"Provided URI:[$mongoUri]\n${e.getMessage} - ${e.getStackTrace.mkString("\n")}")
-                  )
-                )
-            }
-        },
-        Future.value(
-          KO(
-            Errors(
-              CommonError.database.reason(
-                "Failed to acquire a collection: please check if system environment variable `MONGO_DB_URI` was set"
-              )
-            )
-          )
-        )
-      )
-    }
-
-  @Singleton
-  @Provides
-  def providesMongoDB: Future[Option[(MongoConnection, String)]] = dbFuture
+//  @Singleton
+//  @Provides
+//  def providesMongoDB: Future[Option[(MongoConnection, String)]] = dbFuture
 }

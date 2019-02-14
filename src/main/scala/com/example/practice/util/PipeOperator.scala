@@ -7,12 +7,10 @@ object PipeOperator extends Logging {
     def |>[U](f: T => U): U = f(v)
 
     // Additional suggestions:
-    def $$[U](f: T => U): T = {
-      f(v); v
-    }
+    def $$[U](f: T => U): T =
+      f(v).|>(_ => v)
 
-    def #!(str: String = ""): T = {
-      debug(s"$str:$v"); v
-    }
+    def #!(str: String): T =
+      debug(s"$str:$v").|>(_ => v)
   }
 }

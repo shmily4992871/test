@@ -1,7 +1,5 @@
 package com.example.practice.functions
 
-import java.io.Serializable
-
 import com.example.practice.domain.ID
 import com.example.practice.domain.PersonModel.{Person, UpdatePerson}
 import com.example.practice.functions.PersonRepo._
@@ -23,9 +21,9 @@ object PersonRepo {
   final case class InsertBatchSuccess(count: Int)  extends InsertBatchResult
   final case class InsertBatchFailure(msg: String) extends InsertBatchResult
 
-  sealed trait DeleteResult             extends Product with Serializable
-  case class DeleteSuccess(p: Person)   extends DeleteResult
-  case class DeleteFailure(msg: String) extends DeleteResult
+  sealed trait DeleteResult                   extends Product with Serializable
+  final case class DeleteSuccess(p: Person)   extends DeleteResult
+  final case class DeleteFailure(msg: String) extends DeleteResult
 
   sealed trait UpdateResult                      extends Product with Serializable
   final case class UpdateSuccess(person: Person) extends UpdateResult

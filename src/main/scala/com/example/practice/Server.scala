@@ -4,6 +4,7 @@ import com.example.practice.controllers.{AdminController, MainController, Practi
 import com.example.practice.filters.CommonFilters
 import com.example.practice.modules.{MongoDBModule, ServiceSwaggerModule}
 import com.example.practice.util.AppConfigLib._
+import com.example.practice.util.PipeOperator._
 import com.jakehschwartz.finatra.swagger.DocsController
 import com.twitter.finagle.http.{Request, Response}
 import com.twitter.finatra.http.HttpServer
@@ -35,4 +36,5 @@ class Server extends HttpServer {
       .add[AdminController]
       .add[MainController]
       .add[PracticeController]
+      .|>(_ => ())
 }
